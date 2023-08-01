@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Description } from './components/Description';
+import { Coords } from './types/types';
 
-import { Coords } from './types/types'
-
-function App () {
+function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const [maxX, setMaxX] = useState(0);
-  const [maxY, setMaxY] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
@@ -21,8 +18,6 @@ function App () {
       const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
       const { width: boxWidth, height: boxHeight } = boxRef.current.getBoundingClientRect();
 
-      setMaxX(containerWidth - boxWidth + boxWidth / 2);
-      setMaxY(containerHeight - boxHeight + boxHeight / 2);
       setContainerWidth(containerWidth);
       setContainerHeight(containerHeight);
 
@@ -81,18 +76,23 @@ function App () {
   }, [containerWidth, containerHeight]);
 
   useEffect(() => {
+    let currentBoxRef = boxRef.current;
+    let currentContainerRef = containerRef.current;
+
     updateMaxPositions();
+
     window.addEventListener('resize', updateMaxPositions);
-    boxRef.current?.addEventListener('mousedown', onMouseDown);
+    currentBoxRef?.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('mousemove', onMouseMove);
-    containerRef.current?.addEventListener('mouseleave', onMouseUp);
+    currentContainerRef?.addEventListener('mouseleave', onMouseUp);
+
     return () => {
       window.removeEventListener('resize', updateMaxPositions);
-      boxRef.current?.removeEventListener('mousedown', onMouseDown);
+      currentBoxRef?.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('mousemove', onMouseMove);
-      containerRef.current?.removeEventListener('mouseleave', onMouseUp);
+      currentContainerRef?.removeEventListener('mouseleave', onMouseUp);
     };
   }, [updateMaxPositions, onMouseDown, onMouseMove, onMouseUp]);
 
