@@ -1,45 +1,37 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Description } from './components/Description';
 import { Coords } from './types/types';
 
 function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
-
   const isClicked = useRef(false);
-
   const coords = useRef<Coords>({ startX: 0, startY: 0, lastX: 0, lastY: 0 });
 
   const updateMaxPositions = useCallback(() => {
-    if (containerRef.current && boxRef.current) {
-      const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
-      const { width: boxWidth, height: boxHeight } = boxRef.current.getBoundingClientRect();
+    if (!containerRef.current || !boxRef.current) return;
 
-      setContainerWidth(containerWidth);
-      setContainerHeight(containerHeight);
+    const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
+    const { width: boxWidth, height: boxHeight } = boxRef.current.getBoundingClientRect();
 
-      const clampedX = Math.min(Math.max(coords.current.lastX, (boxWidth / 2)), containerWidth - (boxWidth / 2));
-      const clampedY = Math.min(Math.max(coords.current.lastY, (boxHeight / 2)), containerHeight - (boxHeight / 2));
+    const clampedX = Math.min(Math.max(coords.current.lastX, (boxWidth / 2)), containerWidth - (boxWidth / 2));
+    const clampedY = Math.min(Math.max(coords.current.lastY, (boxHeight / 2)), containerHeight - (boxHeight / 2));
 
-      const boxStyle = boxRef.current.style;
-      boxStyle.left = `${clampedX}px`;
-      boxStyle.top = `${clampedY}px`;
+    boxRef.current.style.left = `${(clampedX / containerWidth) * 100}%`;
+    boxRef.current.style.top = `${(clampedY / containerHeight) * 100}%`;
 
-      coords.current = {
-        ...coords.current,
-        lastX: clampedX,
-        lastY: clampedY,
-      };
-    }
+    coords.current = {
+      ...coords.current,
+      lastX: clampedX,
+      lastY: clampedY,
+    };
   }, []);
 
   const onMouseDown = useCallback((e: MouseEvent) => {
     isClicked.current = true;
     const { clientX, clientY } = e;
     const { offsetLeft, offsetTop } = boxRef.current!;
+
     coords.current = {
       startX: clientX,
       startY: clientY,
@@ -48,7 +40,7 @@ function App() {
     };
   }, []);
 
-  const onMouseUp = useCallback(() => {
+  const onStopMoving = useCallback(() => {
     isClicked.current = false;
   }, []);
 
@@ -61,11 +53,14 @@ function App() {
     const nextX = clientX - startX + lastX;
     const nextY = clientY - startY + lastY;
 
-    const clampedX = Math.min(Math.max(nextX, (boxRef.current?.offsetWidth ?? 0) / 2), containerWidth - (boxRef.current?.offsetWidth ?? 0) / 2);
-    const clampedY = Math.min(Math.max(nextY, (boxRef.current?.offsetHeight ?? 0) / 2), containerHeight - (boxRef.current?.offsetHeight ?? 0) / 2);
+    if (!boxRef.current || !containerRef.current) return;
 
-    boxRef.current?.style && (boxRef.current.style.left = `${clampedX}px`);
-    boxRef.current?.style && (boxRef.current.style.top = `${clampedY}px`);
+    const { width: boxWidth, height: boxHeight } = boxRef.current.getBoundingClientRect();
+    const clampedX = Math.min(Math.max(nextX, boxWidth / 2), containerRef.current.clientWidth - boxWidth / 2);
+    const clampedY = Math.min(Math.max(nextY, boxHeight / 2), containerRef.current.clientHeight - boxHeight / 2);
+
+    boxRef.current.style.left = `${(clampedX / containerRef.current.clientWidth) * 100}%`;
+    boxRef.current.style.top = `${(clampedY / containerRef.current.clientHeight) * 100}%`;
 
     coords.current = {
       startX: clientX,
@@ -73,7 +68,7 @@ function App() {
       lastX: clampedX,
       lastY: clampedY,
     };
-  }, [containerWidth, containerHeight]);
+  }, []);
 
   useEffect(() => {
     let currentBoxRef = boxRef.current;
@@ -83,18 +78,18 @@ function App() {
 
     window.addEventListener('resize', updateMaxPositions);
     currentBoxRef?.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseup', onStopMoving);
     document.addEventListener('mousemove', onMouseMove);
-    currentContainerRef?.addEventListener('mouseleave', onMouseUp);
+    currentContainerRef?.addEventListener('mouseleave', onStopMoving);
 
     return () => {
       window.removeEventListener('resize', updateMaxPositions);
       currentBoxRef?.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mouseup', onStopMoving);
       document.removeEventListener('mousemove', onMouseMove);
-      currentContainerRef?.removeEventListener('mouseleave', onMouseUp);
+      currentContainerRef?.removeEventListener('mouseleave', onStopMoving);
     };
-  }, [updateMaxPositions, onMouseDown, onMouseMove, onMouseUp]);
+  }, [updateMaxPositions, onMouseDown, onMouseMove, onStopMoving]);
 
   return (
     <div className="App">
